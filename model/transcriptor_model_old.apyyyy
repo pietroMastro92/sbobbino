@@ -1,0 +1,97 @@
+import os
+import subprocess
+import ffmpeg
+from docx import Document
+from docx.shared import Pt
+from threading import Event
+
+
+class TranscriptorModel:
+    def __init__(self, config_manager):
+        self.config_manager = config_manager
+        self.event = Event()
+        self.process = None
+
+    def transcript(self, file_path, language, model, update_result_text):
+        file_name, file_extension = os.path.splitext(file_path)
+        if file_extension.lower() == ".wav":
+            update_result_text(
+                f"The file '{file_path}' is already in WAV format. Conversion is not needed\n")
+        else:
+            file_name_without_extension = file_name
+            output_file = f'{file_name_without_extension}.wav'
+            try:
+                update_result_text(
+                    f"FFMPEG-->CONVERSION OF {file_path} in WAV\n")
+                (
+                    ffmpeg
+                    .input(file_path)
+                    .output(f'{file_name_without_extension}.wav', ar=16000, ac=1, codec='pcm_s16le')
+                    .run()
+                )
+                update_result_text(
+                    f"File converted successfully to {output_file}")
+                file_path = f'{file_name_without_extension}.wav'
+            except ffmpeg.Error as e:
+                update_result_text(f"Error occurred: {e.stderr.decode()}")
+
+        main_command = self.config_manager.get("main_command", "")
+        models_path = self.config_manager.get("models_path", "")
+
+        file_name_without_extension = os.path.splitext(file_path)[0]
+        command2 = f"{main_command}/main -m {models_path}/{model} -f '{file_name_without_extension}.wav' -l {language} -otxt -et 2.5"
+
+        update_result_text(f"Execution of: {command2}\n")
+
+        self.process = subprocess.Popen(
+            command2,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
+
+        while True:
+            line = self.process.stdout.readline()
+            if not line or self.event.is_set():
+                self.process.kill()
+                break
+            update_result_text(line)
+
+    def terminate_process(self):
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+
+    def reformat_text(self, input_file, output_file, words_per_line):
+        try:
+            with open(input_file, 'r') as f:
+                content = f.read().split()
+
+            formatted_text = []
+            line = ""
+            for word in content:
+                line += word + " "
+                if len(line.split()) >= words_per_line:
+                    formatted_text.append(line.strip())
+                    line = ""
+
+            if line:
+                formatted_text.append(line.strip())
+
+            doc = Document()
+            for line in formatted_text:
+                p = doc.add_paragraph(line)
+                paragraph_format = p.paragraph_format
+                paragraph_format.space_after = Pt(0)
+
+            doc.save(output_file)
+            print(f"Reformatted and justified text saved as {output_file}")
+        except FileNotFoundError:
+            print(f"Error: File '{input_file}' not found.")

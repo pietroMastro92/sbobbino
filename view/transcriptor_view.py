@@ -3,6 +3,7 @@ import tkinter as tk
 import os
 import sys
 import logging
+from model.config_manager import ConfigManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -11,9 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptorView:
-    def __init__(self, root):
+    def __init__(self, root, config_manager: ConfigManager):
         self.root = root
         self.controller = None
+        self.config_manager = config_manager
         self.create_widgets()
 
     def get_resource_path(self, relative_path):
@@ -69,8 +71,7 @@ class TranscriptorView:
             row=4, column=0, columnspan=2, pady=5, sticky=ctk.EW)
 
         # Automatically list the models present in the models folder
-        models_path = self.get_resource_path(
-            os.path.join('whisper.cpp', 'models'))
+        models_path = self.get_resource_path(self.config_manager.get('models_path'))
         model_files = [f for f in os.listdir(
             models_path) if f.startswith("ggml") and f.endswith(".bin")]
         self.models_combobox = ctk.CTkComboBox(

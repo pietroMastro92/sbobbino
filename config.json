@@ -1,4 +1,4 @@
 {
-    "main_command": "/Users/pietromastro/Documents/whispergui/whisper.cpp",
-    "models_path": "/Users/pietromastro/Documents/whispergui/whisper.cpp/models"
+    "main_command": "../whisper.cpp",
+    "models_path": "../whisper.cpp/models"
 }

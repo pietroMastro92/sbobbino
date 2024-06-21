@@ -5,6 +5,7 @@ from model.config_manager import ConfigManager
 from model.transcriptor_model import TranscriptorModel
 from view.transcriptor_view import TranscriptorView
 from controller.transcriptor_controller import TranscriptorController
+from model.sbobbino_settings import SbobbinoSettings
 import customtkinter as ctk
 import logging
 
@@ -12,7 +13,6 @@ import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -25,8 +25,10 @@ def get_resource_path(relative_path):
 
 def run_setup():
     setup_script = get_resource_path("build_whisper.sh")
+    whisper_dir = sbobbino_settings.get_property('Path', 'whisper_dir')
+    logger.info("Folder of whisper is ${whisper_dir}!")
     try:
-        subprocess.check_call(["sh", setup_script])
+        subprocess.check_call(["sh", setup_script, whisper_dir])
     except subprocess.CalledProcessError as e:
         logger.error(f"Setup failed with error: {e}")
         sys.exit(1)
@@ -34,6 +36,7 @@ def run_setup():
 
 if __name__ == "__main__":
     config_file = get_resource_path("config.json")
+    sbobbino_settings = SbobbinoSettings()
     if not os.path.exists(config_file):
         run_setup()
 
@@ -45,7 +48,7 @@ if __name__ == "__main__":
     root = ctk.CTk()
     config_manager = ConfigManager()
     model = TranscriptorModel(config_manager)
-    view = TranscriptorView(root)
+    view = TranscriptorView(root, config_manager)
     controller = TranscriptorController(model, view)
     view.set_controller(controller)
     root.mainloop()

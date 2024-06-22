@@ -5,6 +5,7 @@ from docx import Document
 from docx.shared import Pt
 from threading import Event
 import logging
+import pty
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -13,24 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptorModel:
-    def __init__(self, config_manager):
-        self.config_manager = config_manager
+    def __init__(self):
         self.event = Event()
         self.process = None
-
-    def get_resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
 
     def transcript(self, file_path, language, model, update_result_text):
         file_name, file_extension = os.path.splitext(file_path)
         if file_extension.lower() == ".wav":
             update_result_text(
-                f"The file '{file_path}' is already in WAV format. Conversion is not needed\n")
+                "The file  is already in WAV format. Conversion is not needed\n")
         else:
             file_name_without_extension = file_name
             output_file = f'{file_name_without_extension}.wav'
@@ -41,6 +33,7 @@ class TranscriptorModel:
                     ffmpeg
                     .input(file_path)
                     .output(f'{file_name_without_extension}.wav', ar=16000, ac=1, codec='pcm_s16le')
+                    .overwrite_output()
                     .run()
                 )
                 update_result_text(
@@ -49,33 +42,42 @@ class TranscriptorModel:
             except ffmpeg.Error as e:
                 update_result_text(f"Error occurred: {e.stderr.decode()}")
 
-        main_command = self.config_manager.get("main_command", "")
-        models_path = self.config_manager.get("models_path", "")
-
-        main_command = self.get_resource_path(main_command)
-        models_path = self.get_resource_path(models_path)
-
         file_name_without_extension = os.path.splitext(file_path)[0]
-        command2 = f"{main_command}/main -m {models_path}/{model} -f '{file_name_without_extension}.wav' -l {language} -otxt -et 2.5"
-        update_result_text(f"Execution of: {command2}\n")
+        dirName = os.path.dirname(file_path)
+        if language == "auto":
+            command = f"whisper '{file_name_without_extension}.wav' --model {model} -f txt -o {dirName} --threads 4"
+        else:
+            command = f"whisper '{file_name_without_extension}.wav' --language {language} --model {model} -f txt -o {dirName} --threads 4"
 
+        update_result_text(f"Execution of: {command}\n")
+
+        master_fd, slave_fd = pty.openpty()
         self.process = subprocess.Popen(
-            command2,
+            command,
             shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=master_fd,
+            stderr=slave_fd,
             stdin=subprocess.DEVNULL,
             text=True,
             bufsize=1,
             universal_newlines=True
         )
 
-        while True:
-            line = self.process.stdout.readline()
-            if not line or self.event.is_set():
-                self.process.kill()
-                break
-            update_result_text(line)
+        os.close(slave_fd)
+
+        try:
+            with os.fdopen(master_fd) as stdout:
+                for line in iter(stdout.readline, ''):
+                    if self.event.is_set():
+                        self.process.kill()
+                        break
+                    if line:
+                        update_result_text(line)
+        except Exception as e:
+            update_result_text(f"An error occurred: {str(e)}")
+        finally:
+            self.process.wait()
+            self.process = None
 
     def terminate_process(self):
         if self.process and self.process.poll() is None:

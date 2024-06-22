@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
+
     # Modes: "System" (default), "Dark", "Light"
     ctk.set_appearance_mode("System")
     # Themes: "blue" (default), "green", "dark-blue"

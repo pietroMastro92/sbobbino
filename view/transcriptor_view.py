@@ -62,9 +62,8 @@ class TranscriptorView:
             row=4, column=0, columnspan=2, pady=5, sticky=ctk.EW)
 
         # Automatically list the models present in the models folder
-        models = ["tiny", "tiny.en", "base", "base.en", "small",
-                  "small.en", "medium", "medium.en", "large", "large.en"]
-        self.model_label = ctk.CTkLabel(self.control_frame, text="Language:")
+        models = ["tiny", "base", "small", "medium", "large"]
+        self.model_label = ctk.CTkLabel(self.control_frame, text="Model:")
         self.model_label.grid(
             row=5, column=0, columnspan=2, pady=5, sticky=ctk.W)
 

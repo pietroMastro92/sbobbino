@@ -5,6 +5,7 @@ from docx import Document
 from docx.shared import Pt
 from threading import Event
 import logging
+import pty
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -32,6 +33,7 @@ class TranscriptorModel:
                     ffmpeg
                     .input(file_path)
                     .output(f'{file_name_without_extension}.wav', ar=16000, ac=1, codec='pcm_s16le')
+                    .overwrite_output()
                     .run()
                 )
                 update_result_text(
@@ -41,30 +43,41 @@ class TranscriptorModel:
                 update_result_text(f"Error occurred: {e.stderr.decode()}")
 
         file_name_without_extension = os.path.splitext(file_path)[0]
+        dirName = os.path.dirname(file_path)
         if language == "auto":
-            command = f"whisper '{file_name_without_extension}.wav' --model {model}"
+            command = f"whisper '{file_name_without_extension}.wav' --model {model} -f txt -o {dirName} --threads 4"
         else:
-            command = f"whisper '{file_name_without_extension}.wav' --language {language} --model {model}"
+            command = f"whisper '{file_name_without_extension}.wav' --language {language} --model {model} -f txt -o {dirName} --threads 4"
 
         update_result_text(f"Execution of: {command}\n")
 
+        master_fd, slave_fd = pty.openpty()
         self.process = subprocess.Popen(
             command,
             shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=master_fd,
+            stderr=slave_fd,
             stdin=subprocess.DEVNULL,
             text=True,
             bufsize=1,
             universal_newlines=True
         )
 
-        while True:
-            line = self.process.stdout.readline()
-            if not line or self.event.is_set():
-                self.process.kill()
-                break
-            update_result_text(line)
+        os.close(slave_fd)
+
+        try:
+            with os.fdopen(master_fd) as stdout:
+                for line in iter(stdout.readline, ''):
+                    if self.event.is_set():
+                        self.process.kill()
+                        break
+                    if line:
+                        update_result_text(line)
+        except Exception as e:
+            update_result_text(f"An error occurred: {str(e)}")
+        finally:
+            self.process.wait()
+            self.process = None
 
     def terminate_process(self):
         if self.process and self.process.poll() is None:

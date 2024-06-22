@@ -22,6 +22,7 @@ pyinstaller --name 'Sbobbino' \
             --add-data='./requirements.txt:.' \
             --add-data='./build_whisper.sh:.' \
             --add-data='./config.json:.' \
+            --add-data='./sbobbino.ini:.' \
             sbobbino.py
 
 # ---------------------------------------

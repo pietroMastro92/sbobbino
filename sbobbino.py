@@ -14,19 +14,10 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def get_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
-
 def run_setup():
-    setup_script = get_resource_path("build_whisper.sh")
-    whisper_dir = sbobbino_settings.get_property('Path', 'whisper_dir')
-    logger.info("Folder of whisper is ${whisper_dir}!")
+    setup_script = ConfigManager.get_resource_path("build_whisper.sh")
+    whisper_dir = sbobbino_settings.get_property('Paths', 'whisper_dir')
+    logger.info(f"Folder of whisper is {whisper_dir}!")
     try:
         subprocess.check_call(["sh", setup_script, whisper_dir])
     except subprocess.CalledProcessError as e:
@@ -35,7 +26,7 @@ def run_setup():
 
 
 if __name__ == "__main__":
-    config_file = get_resource_path("config.json")
+    config_file = ConfigManager.get_resource_path("config.json")
     sbobbino_settings = SbobbinoSettings()
     if not os.path.exists(config_file):
         run_setup()

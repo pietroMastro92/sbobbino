@@ -14,7 +14,8 @@ class ConfigManager:
         self.config_file = self.get_resource_path(config_file)
         self.config = self.load_config()
 
-    def get_resource_path(self, relative_path):
+    @staticmethod
+    def get_resource_path(relative_path):
         """ Get the absolute path to the resource, works for both dev and PyInstaller """
         try:
             base_path = sys._MEIPASS

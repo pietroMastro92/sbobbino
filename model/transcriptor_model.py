@@ -4,6 +4,7 @@ import ffmpeg
 from docx import Document
 from docx.shared import Pt
 from threading import Event
+from model.config_manager import ConfigManager
 import logging
 
 # Configure logging
@@ -13,18 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptorModel:
-    def __init__(self, config_manager):
+    def __init__(self, config_manager: ConfigManager):
         self.config_manager = config_manager
         self.event = Event()
         self.process = None
-
-    def get_resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
 
     def transcript(self, file_path, language, model, update_result_text):
         file_name, file_extension = os.path.splitext(file_path)
@@ -52,8 +45,8 @@ class TranscriptorModel:
         main_command = self.config_manager.get("main_command", "")
         models_path = self.config_manager.get("models_path", "")
 
-        main_command = self.get_resource_path(main_command)
-        models_path = self.get_resource_path(models_path)
+        main_command = ConfigManager.get_resource_path(main_command)
+        models_path = ConfigManager.get_resource_path(models_path)
 
         file_name_without_extension = os.path.splitext(file_path)[0]
         command2 = f"{main_command}/main -m {models_path}/{model} -f '{file_name_without_extension}.wav' -l {language} -otxt -et 2.5"

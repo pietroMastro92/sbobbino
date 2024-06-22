@@ -18,13 +18,6 @@ class TranscriptorView:
         self.config_manager = config_manager
         self.create_widgets()
 
-    def get_resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
 
     def create_widgets(self):
         self.root.title("Sbobbino")
@@ -71,7 +64,7 @@ class TranscriptorView:
             row=4, column=0, columnspan=2, pady=5, sticky=ctk.EW)
 
         # Automatically list the models present in the models folder
-        models_path = self.get_resource_path(self.config_manager.get('models_path'))
+        models_path = ConfigManager.get_resource_path(self.config_manager.get('models_path'))
         model_files = [f for f in os.listdir(
             models_path) if f.startswith("ggml") and f.endswith(".bin")]
         self.models_combobox = ctk.CTkComboBox(

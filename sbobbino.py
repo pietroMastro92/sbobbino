@@ -15,15 +15,25 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 def run_setup():
-    setup_script = ConfigManager.get_resource_path("build_whisper.sh")
     whisper_dir = sbobbino_settings.get_property('Paths', 'whisper_dir')
     logger.info(f"Folder of whisper is {whisper_dir}!")
-    try:
-        subprocess.check_call(["sh", setup_script, whisper_dir])
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Setup failed with error: {e}")
-        sys.exit(1)
+    if is_windows():
+        setup_script = ConfigManager.get_resource_path("build_whisper.ps1")
+        try:
+            subprocess.check_call(["powershell.exe", setup_script, f"-WhisperPath='{whisper_dir}' -Name='make'"])
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Setup failed with error: {e}")
+            sys.exit(1)
+    else:
+        setup_script = ConfigManager.get_resource_path("build_whisper.sh")
+        try:
+            subprocess.check_call(["sh", setup_script, whisper_dir])
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Setup failed with error: {e}")
+            sys.exit(1)
 
+def is_windows():
+    return os.name == 'nt'
 
 if __name__ == "__main__":
     config_file = ConfigManager.get_resource_path("config.json")

@@ -37,21 +37,39 @@ begin {
         }
     }
     function Install-Package {
-        CmdletBinding()
-        param()
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory)]
+            [string]$CommandName
+        )
 
-        choco.exe install $Name --yes --nocolor --limitoutput --no-progress
+
+        Invoke-Admin -program choco.exe -argumentString "install $CommandName --yes --nocolor --limitoutput --no-progress"
         $ResultCode = $LASTEXITCODE
         
         if ($ResultCode -eq 0) {
-            Write-Host "Correctly Installed $Name"
+            Write-Host "Correctly Installed Package $CommandName"
             exit 0
         }
         else {
-            Write-Error "Failed to install $Name."
+            Write-Error "Failed to install $CommandName."
             Write-Host "Returned exit code: $($ResultCode)"
             exit $ResultCode
         }
+    }
+    
+    function Invoke-Admin() {
+        param ( [string]$program = $(throw "Please specify a program" ),
+                [string]$argumentString = "",
+                [switch]$waitForExit )
+    
+        Write-Host "Invoking commmad for $program $argumentString"
+        $psi = new-object "Diagnostics.ProcessStartInfo"
+        $psi.FileName = $program 
+        $psi.Arguments = $argumentString
+        $psi.Verb = "runas"
+        $proc = [Diagnostics.Process]::Start($psi)
+        $proc.WaitForExit();
     }
 }
 process {
@@ -72,20 +90,37 @@ process {
         }
     }
 
-    $(Install-Package)
-
-    # Resolve the script directory
-    $SCRIPT_DIR = Split-Path (Split-Path $WhisperPath)
-    $WHISPER_DIR = $WhisperPath
-    if ($args.Count -eq 0) {
-        Write-Host "No whisper.cpp dir provided! Searching in same directory ..."
-        $WHISPER_DIR = Join-Path -Path (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent) -ChildPath "whisper.cpp"
+    $Command = Get-Command make -ErrorAction Ignore
+    if ($Command.Path) {
+        Write-Warning "'make' was found at '$($Command.Path)'."
+    } else {
+        Write-Host "Invoking Function to install package $Name"
+        Install-Package -CommandName $Name
     }
 
+    $mingwInstall = "C:\\ProgramData\\mingw64\\install\\mingw64\\bin"
+    if (-not $(Test-Path -Path $mingwInstall)) {
+        Write-Host "Invoking Function to install package mingw"
+        Install-Package -CommandName mingw
+    }
+    $Command = Get-Command gcc -ErrorAction Ignore
+    if ($Command.Path) {
+        Write-Warning "'gcc' was found at '$($Command.Path)'."
+    } else {
+        Write-Host "Updating path to include compilers"
+        $env:Path += ";C:\\ProgramData\\mingw64\\install\\mingw64\\bin"
+    }
 
+    # Resolve the script directory
+    Write-Host "Whisper path set as $WhisperPath"
+    $SCRIPT_DIR = $PSScriptRoot
+    if (-not $PSScriptRoot) {
+        $SCRIPT_DIR = split-path -parent $MyInvocation.MyCommand.Definition
+    }
+    Write-Host "Script dir set as $SCRIPT_DIR"
 
     # Change to the whisper.cpp directory
-    Set-Location -Path $WHISPER_DIR
+    Set-Location -Path $WhisperPath
 
     # Build the project
     Invoke-Expression -Command "make"
@@ -98,14 +133,14 @@ process {
 
     # Create the config.json file with the correct paths
     $CONFIG_FILE = Join-Path -Path $SCRIPT_DIR -ChildPath "config.json"
-    $MODELS_PATH = Join-Path -Path $WHISPER_DIR -ChildPath "models"
+    $MODELS_PATH = Join-Path -Path $WhisperPath -ChildPath "models"
 
-    $configContent = @'
+    $configContent = @"
     {
-        "main_command": "$WHISPER_DIR",
-        "models_path": "$MODELS_PATH"
+        "main_command": "$($WhisperPath -replace '\\', '\\')",
+        "models_path": "$($MODELS_PATH -replace '\\', '\\')"
     }
-'@
+"@
 
     Set-Content -Path $CONFIG_FILE -Value $configContent
     Write-Host "Config file created at $CONFIG_FILE"

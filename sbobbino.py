@@ -20,7 +20,7 @@ def run_setup():
     if is_windows():
         setup_script = ConfigManager.get_resource_path("build_whisper.ps1")
         try:
-            subprocess.check_call(["powershell.exe", setup_script, f"-WhisperPath='{whisper_dir}' -Name='make'"])
+            subprocess.check_call(["powershell.exe", setup_script, f"-WhisperPath \"{whisper_dir}\" -Name \"make\""])
         except subprocess.CalledProcessError as e:
             logger.error(f"Setup failed with error: {e}")
             sys.exit(1)

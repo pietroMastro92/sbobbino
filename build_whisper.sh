@@ -10,12 +10,12 @@ cd "$SCRIPT_DIR/whisper.cpp" || exit
 make
 
 # Download and make all specified models
-#MODELS=("tiny" "base" "small" "medium" "large-v3")
+MODELS=("tiny" "base" "small" "medium" "large-v3")
 #MODELS=("small")
 
-#for MODEL in "${MODELS[@]}"; do
-#    bash ./models/download-ggml-model.sh $MODEL
-#done
+for MODEL in "${MODELS[@]}"; do
+    bash ./models/download-ggml-model.sh $MODEL
+done
 
 # Move the downloaded models to the models directory
 mv ggml*.bin models/

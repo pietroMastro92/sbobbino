@@ -1,3 +1,5 @@
-customtkinter
-ffmpeg-python
-python-docx
+ffmpeg==1.4
+ffmpeg-python==0.2.0
+ffmpy==0.3.1
+numpy==1.24.1
+openai-whisper==20231117

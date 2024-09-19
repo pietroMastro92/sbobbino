@@ -16,16 +16,8 @@ class TranscriptorView:
         self.controller = None
         self.create_widgets()
 
-    def get_resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
-
     def create_widgets(self):
-        self.root.title("Sbobbino")
+        self.root.title("Sbobino")
         self.root.geometry("1400x560")
 
         # Set a background color that will be used for the control frame
@@ -58,24 +50,26 @@ class TranscriptorView:
             self.control_frame, text="Delete All", command=self.delete_all_files)
         self.delete_all_button.grid(row=2, column=1, pady=5, sticky=ctk.EW)
 
-        languages = ["auto", "it", "en"]
+        languages = ["auto", "en", "it"]
         self.language_label = ctk.CTkLabel(
-            self.control_frame, text="Select Transcription Language")
-        self.language_label.grid(row=3, column=0, columnspan=2, pady=5)
+            self.control_frame, text="Language:")
+        self.language_label.grid(
+            row=3, column=0, columnspan=2, pady=5, sticky=ctk.W)
         self.language_combobox = ctk.CTkComboBox(
             self.control_frame, values=languages)
-        self.language_combobox.set("auto")
+        self.language_combobox.set("en")
         self.language_combobox.grid(
             row=4, column=0, columnspan=2, pady=5, sticky=ctk.EW)
 
         # Automatically list the models present in the models folder
-        models_path = self.get_resource_path(
-            os.path.join('whisper.cpp', 'models'))
-        model_files = [f for f in os.listdir(
-            models_path) if f.startswith("ggml") and f.endswith(".bin")]
+        models = ["tiny", "base", "small", "medium", "large"]
+        self.model_label = ctk.CTkLabel(self.control_frame, text="Model:")
+        self.model_label.grid(
+            row=5, column=0, columnspan=2, pady=5, sticky=ctk.W)
+
         self.models_combobox = ctk.CTkComboBox(
-            self.control_frame, values=model_files)
-        self.models_combobox.set(model_files[0])
+            self.control_frame, values=models)
+        self.models_combobox.set(models[0])
         self.models_combobox.grid(
             row=6, column=0, columnspan=2, pady=5, sticky=ctk.EW)
 

@@ -44,10 +44,10 @@ class TranscriptorController:
                 if event.is_set():
                     break
                 file_name, _ = os.path.splitext(file_path)
-                if os.path.exists(file_name + r".wav.txt"):
+                if os.path.exists(file_name + r".txt"):
                     self.model.reformat_text(
-                        file_name + r".wav.txt", file_name + '.docx', 50)
-                    os.remove(file_name + r".wav.txt")
+                        file_name + r".txt", file_name + '.docx', 50)
+                    os.remove(file_name + r".txt")
         finally:
             event.clear()
             self.view.root.after(0, self.update_buttons_state)

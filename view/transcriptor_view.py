@@ -17,7 +17,7 @@ class TranscriptorView:
         self.create_widgets()
 
     def create_widgets(self):
-        self.root.title("Sbobbino")
+        self.root.title("Sbobino")
         self.root.geometry("1400x560")
 
         # Set a background color that will be used for the control frame

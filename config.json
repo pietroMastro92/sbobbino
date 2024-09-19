@@ -1,0 +1,4 @@
+{
+    "main_command": "./whisper.cpp",
+    "models_path": "./whisper.cpp/models"
+}
